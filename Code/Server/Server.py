@@ -5,7 +5,7 @@ import time
 import fcntl
 import socket
 import struct
-import picamera
+import cv2 as cv
 import threading
 from Led import *
 from Servo import *
@@ -78,17 +78,17 @@ class Server:
             pass
         self.server_socket.close()
         try:
-            with picamera.PiCamera() as camera:
-                camera.resolution = (400,300)       # pi camera resolution
-                camera.framerate = 15               # 15 frames/sec
-                camera.saturation = 80              # Set image video saturation
-                camera.brightness = 50              # Set the brightness of the image (50 indicates the state of white balance)
+            with cv.VideoCapture(0) as cap:
                 start = time.time()
                 stream = io.BytesIO()
                 # send jpeg format video stream
                 print ("Start transmit ... ")
-                for foo in camera.capture_continuous(stream, 'jpeg', use_video_port = True):
+                while True:
+                    ret, frame = cap.read()
+                    if not ret:
+                        raise BaseException("Can't receive frame (stream end?). Exiting ...")
                     try:
+                        stream.write(frame)
                         self.connection.flush()
                         stream.seek(0)
                         b = stream.read()
