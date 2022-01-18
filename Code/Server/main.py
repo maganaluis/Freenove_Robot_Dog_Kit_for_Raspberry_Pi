@@ -14,21 +14,21 @@ class Runner:
         self.instruction=threading.Thread(target=self.server.receive_instruction)
         self.instruction.start()
 
-    @atexit.register
-    def cleanup(self):
-        try:
-            stop_thread(self.video)
-            stop_thread(self.instruction)
-        except:
-            pass
-        try:
-            self.server.server_socket.shutdown(2)
-            self.server.server_socket1.shutdown(2)
-            self.server.turn_off_server()
-        except:
-            pass
-        os._exit(0)
+def cleanup(runner):
+    try:
+        stop_thread(runner.video)
+        stop_thread(runner.instruction)
+    except:
+        pass
+    try:
+        runner.server.server_socket.shutdown(2)
+        runner.server.server_socket1.shutdown(2)
+        runner.server.turn_off_server()
+    except:
+        pass
+    os._exit(0)
         
 if __name__ == '__main__':
     runner = Runner()
     runner.run()
+    atexit.register(cleanup, runner)

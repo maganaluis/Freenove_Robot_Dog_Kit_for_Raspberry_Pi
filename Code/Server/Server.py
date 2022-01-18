@@ -5,6 +5,7 @@ import time
 import fcntl
 import socket
 import struct
+import pickle
 import cv2 as cv
 import threading
 from Led import *
@@ -72,39 +73,18 @@ class Server:
             print(e)
     def transmission_video(self):
         try:
-            self.connection,self.client_address = self.server_socket.accept()
-            self.connection=self.connection.makefile('wb')
-        except:
-            pass
-        self.server_socket.close()
-        try:
-            with cv.VideoCapture(0) as cap:
-                start = time.time()
-                stream = io.BytesIO()
-                # send jpeg format video stream
+            cap = cv.VideoCapture(0)
+            while True:
                 print ("Start transmit ... ")
-                while True:
-                    ret, frame = cap.read()
-                    if not ret:
-                        raise BaseException("Can't receive frame (stream end?). Exiting ...")
-                    try:
-                        stream.write(frame)
-                        self.connection.flush()
-                        stream.seek(0)
-                        b = stream.read()
-                        lengthBin = struct.pack('L', len(b))
-                        self.connection.write(lengthBin)
-                        self.connection.write(b)
-                        stream.seek(0)
-                        stream.truncate()
-                    except BaseException as e:
-                        #print (e)
-                        print ("End transmit ... " )
-                        break
+                ret, frame = cap.read()
+                if not ret:
+                    print("Video ended")
+                    break
+                data = pickle.dumps(frame)
+                self.server_socket.sendall(struct.pack("L", len(data))+data)
         except BaseException as e:
-            #print(e)
-            print ("Camera unintall")
-            
+            print(e)
+                
     def measuring_voltage(self,connect):
         try:
             for i in range(5):
@@ -210,7 +190,6 @@ class Server:
         print("close_recv")
         self.control.relax_flag=False
         self.control.order[0]=cmd.CMD_RELAX
-        
 
 if __name__ == '__main__':
     pass

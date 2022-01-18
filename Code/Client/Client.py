@@ -4,6 +4,7 @@ import copy
 import socket
 import struct
 import threading
+import pickle
 from PID import *
 from Face import *
 import numpy as np
@@ -97,19 +98,30 @@ class Client:
             self.send_data(command)
             #print (command)
     def receiving_video(self,ip):
-        stream_bytes = b' '
-        try:
-            self.client_socket.connect((ip, 8001))
-            self.connection = self.client_socket.makefile('rb')
-        except:
-            #print ("command port connect failed")
-            pass
+        import socket
+        socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket_client.bind(("", 8000))
+        socket_client.listen(10)
+        conn,addr = socket_client.accept()
+        payload_size = struct.calcsize("L") 
+        data = ""
         while True:
             try:
-                stream_bytes= self.connection.read(4)
-                leng=struct.unpack('<L', stream_bytes[:4])
-                jpg=self.connection.read(leng[0])
-                if self.is_valid_image_4_bytes(jpg):
+                while len(data) < payload_size:
+                    data += conn.recv(4096)
+                packed_msg_size = data[:payload_size]
+                data = data[payload_size:]
+                msg_size = struct.unpack("L", packed_msg_size)[0]
+                while len(data) < msg_size:
+                    data += conn.recv(4096)
+                frame_data = data[:msg_size]
+                data = data[msg_size:]
+                ###
+
+                frame=pickle.loads(frame_data)
+                with open("./image.jpeg", "wb+") as f:
+                    f.write(frame)
+                if False:
                     if self.video_flag:
                         self.image = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
                         if self.ball_flag and self.face_id==False:
