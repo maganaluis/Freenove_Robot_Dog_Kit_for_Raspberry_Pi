@@ -73,6 +73,12 @@ class Server:
             print(e)
     def transmission_video(self):
         try:
+            self.connection,self.client_address = self.server_socket.accept()
+            self.connection=self.connection.makefile('wb')
+        except:
+            pass
+        self.server_socket.close()
+        try:
             cap = cv.VideoCapture(0)
             while True:
                 print ("Start transmit ... ")
@@ -81,9 +87,11 @@ class Server:
                     print("Video ended")
                     break
                 data = pickle.dumps(frame)
-                self.server_socket.sendall(struct.pack("L", len(data))+data)
+                lengthBin = struct.pack('L', len(data))
+                self.connection.write(lengthBin)
+                self.connection.write(data)
         except BaseException as e:
-            print(e)
+            print("Exception encountered while transmiting video: ", e)
                 
     def measuring_voltage(self,connect):
         try:
